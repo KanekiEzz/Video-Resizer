@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Resizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .upload-section.dragover {
+            border-color: #764ba2;
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            background: rgba(102, 126, 234, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .preset-btn {
+            padding: 5px 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .preset-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .video-preview {
+            text-align: center;
+        }
+
+        .video-preview h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .video-preview video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+
+        .status.processing {
+            background: rgba(255, 193, 7, 0.1);
+            color: #856404;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .status.success {
+            background: rgba(40, 167, 69, 0.1);
+            color: #155724;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        .status.error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #721c24;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .video-container {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎬 Video Resizer</h1>
+
+        <div class="upload-section" onclick="document.getElementById('videoInput').click()">
+            <div class="upload-icon">📹</div>
+            <div class="upload-text">Click to select video or drag and drop</div>
+            <input type="file" id="videoInput" class="file-input" accept="video/*">
+        </div>
+
+        <div class="controls hidden" id="controls">
+            <div class="control-group">
+                <label>Output Width (px)</label>
+                <input type="number" id="outputWidth" value="854" min="1" max="4096">
+                <div class="preset-buttons">
+                    <span class="preset-btn" onclick="setPreset(640, 480)">640x480</span>
+                    <span class="preset-btn" onclick="setPreset(854, 480)">854x480</span>
+                    <span class="preset-btn" onclick="setPreset(1280, 720)">1280x720</span>
+                    <span class="preset-btn" onclick="setPreset(1920, 1080)">1920x1080</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Output Height (px)</label>
+                <input type="number" id="outputHeight" value="480" min="1" max="4096">
+            </div>
+
+            <div class="control-group">
+                <label>Video Quality</label>
+                <select id="quality">
+                    <option value="0.7">High (0.7)</option>
+                    <option value="0.5">Medium (0.5)</option>
+                    <option value="0.3">Low (0.3)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Output Format</label>
+                <select id="format">
+                    <option value="webm">WebM</option>
+                    <option value="mp4">MP4</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="video-container hidden" id="videoContainer">
+            <div class="video-preview">
+                <h3>Original Video</h3>
+                <video id="originalVideo" controls></video>
+                <div id="originalInfo"></div>
+            </div>
+            <div class="video-preview">
+                <h3>Resized Video</h3>
+                <video id="resizedVideo" controls class="hidden"></video>
+                <div id="resizedInfo"></div>
+            </div>
+        </div>
+
+        <div class="progress-container hidden" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="text-center">
+            <button class="btn hidden" id="processBtn" onclick="processVideo()">
+                🔄 Resize Video
+            </button>
+            <button class="btn hidden" id="downloadBtn" onclick="downloadVideo()">
+                ⬇️ Download Resized Video
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let originalFile = null;
+        let resizedBlob = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+
+        const videoInput = document.getElementById('videoInput');
+        const originalVideo = document.getElementById('originalVideo');
+        const resizedVideo = document.getElementById('resizedVideo');
+        const controls = document.getElementById('controls');
+        const videoContainer = document.getElementById('videoContainer');
+        const processBtn = document.getElementById('processBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const status = document.getElementById('status');
+        const uploadSection = document.querySelector('.upload-section');
+
+        // Drag and drop functionality
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleVideoUpload(files[0]);
+            }
+        });
+
+        videoInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleVideoUpload(e.target.files[0]);
+            }
+        });
+
+        function handleVideoUpload(file) {
+            if (!file.type.startsWith('video/')) {
+                showStatus('Please select a valid video file.', 'error');
+                return;
+            }
+
+            originalFile = file;
+            const url = URL.createObjectURL(file);
+            originalVideo.src = url;
+
+            originalVideo.onloadedmetadata = () => {
+                const width = originalVideo.videoWidth;
+                const height = originalVideo.videoHeight;
+                const duration = originalVideo.duration;
+                const size = (file.size / 1024 / 1024).toFixed(2);
+
+                document.getElementById('originalInfo').innerHTML = `
+                    <strong>Original:</strong> ${width}x${height} | ${duration.toFixed(1)}s | ${size} MB
+                `;
+
+                // Auto-fill dimensions maintaining aspect ratio
+                document.getElementById('outputWidth').value = width;
+                document.getElementById('outputHeight').value = height;
+            };
+
+            controls.classList.remove('hidden');
+            videoContainer.classList.remove('hidden');
+            processBtn.classList.remove('hidden');
+
+            showStatus('Video loaded successfully! Adjust settings and click "Resize Video".', 'success');
+        }
+
+        function setPreset(width, height) {
+            document.getElementById('outputWidth').value = width;
+            document.getElementById('outputHeight').value = height;
+        }
+
+        async function processVideo() {
+            if (!originalFile) {
+                showStatus('Please upload a video first.', 'error');
+                return;
+            }
+
+            const outputWidth = parseInt(document.getElementById('outputWidth').value);
+            const outputHeight = parseInt(document.getElementById('outputHeight').value);
+            const quality = parseFloat(document.getElementById('quality').value);
+
+            if (outputWidth < 1 || outputHeight < 1) {
+                showStatus('Please enter valid dimensions.', 'error');
+                return;
+            }
+
+            // Mime type detection
+            let mimeType = '';
+            if (MediaRecorder.isTypeSupported('video/webm; codecs=vp8')) {
+                mimeType = 'video/webm; codecs=vp8';
+            } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                mimeType = 'video/webm';
+            } else {
+                showStatus('Your browser does not support video recording.', 'error');
+                processBtn.disabled = false;
+                return;
+            }
+
+            showStatus('Processing video...', 'processing');
+            progressContainer.classList.remove('hidden');
+            processBtn.disabled = true;
+
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = outputWidth;
+                canvas.height = outputHeight;
+
+                const video = document.createElement('video');
+                video.src = originalVideo.src;
+                video.muted = true;
+                video.crossOrigin = 'anonymous';
+
+                await new Promise((resolve) => {
+                    if (video.readyState >= 3) {
+                        resolve();
+                    } else {
+                        video.addEventListener('canplay', resolve, { once: true });
+                    }
+                });
+
+                await video.play().catch(e => {
+                    console.error('Video play error:', e);
+                    throw e;
+                });
+
+                const stream = canvas.captureStream(30);
+
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 1000000 * quality
+                });
+
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        recordedChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    resizedBlob = new Blob(recordedChunks, { type: mimeType });
+                    const url = URL.createObjectURL(resizedBlob);
+                    resizedVideo.src = url;
+                    resizedVideo.classList.remove('hidden');
+
+                    const sizeMB = (resizedBlob.size / 1024 / 1024).toFixed(2);
+                    document.getElementById('resizedInfo').innerHTML = `
+                <strong>Resized:</strong> ${outputWidth}x${outputHeight} | ${sizeMB} MB
+            `;
+
+                    downloadBtn.classList.remove('hidden');
+                    showStatus('Video resized successfully!', 'success');
+                    progressContainer.classList.add('hidden');
+                    processBtn.disabled = false;
+                };
+
+                mediaRecorder.start();
+
+                const duration = video.duration;
+
+                function drawFrame() {
+                    if (video.ended || video.paused) {
+                        mediaRecorder.stop();
+                        return;
+                    }
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(video, 0, 0, outputWidth, outputHeight);
+
+                    const progress = Math.min((video.currentTime / duration) * 100, 100);
+                    progressBar.style.width = progress + '%';
+
+                    requestAnimationFrame(drawFrame);
+                }
+
+                requestAnimationFrame(drawFrame);
+
+            } catch (error) {
+                console.error('Error processing video:', error);
+                showStatus('Error processing video. Please try again.', 'error');
+                progressContainer.classList.add('hidden');
+                processBtn.disabled = false;
+            }
+        }
+
+        function downloadVideo() {
+            if (!resizedBlob) {
+                showStatus('No processed video to download.', 'error');
+                return;
+            }
+
+            const format = document.getElementById('format').value;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(resizedBlob);
+            a.download = `resized_video.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            showStatus('Video downloaded successfully!', 'success');
+        }
+
+        function showStatus(message, type) {
+            status.innerHTML = message;
+            status.className = `status ${type}`;
+            status.classList.remove('hidden');
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        // Auto-calculate height based on aspect ratio
+        document.getElementById('outputWidth').addEventListener('input', (e) => {
+            if (originalVideo.videoWidth && originalVideo.videoHeight) {
+                const aspectRatio = originalVideo.videoWidth / originalVideo.videoHeight;
+                const newHeight = Math.round(e.target.value / aspectRatio);
+                document.getElementById('outputHeight').value = newHeight;
+            }
+        });
+    </script>
+</body>
+
+</html>
